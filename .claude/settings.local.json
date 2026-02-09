@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(superdesign --help:*)",
+      "Bash(superdesign login:*)",
+      "Bash(superdesign create-project:*)",
+      "Bash(superdesign create-design-draft:*)",
+      "Bash(superdesign logout:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:p.superdesign.dev)",
+      "Bash(curl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ls:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(where:*)",
+      "Bash(docker:*)",
+      "Bash(npm run start:dev:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(superdesign fetch-design-nodes:*)",
+      "Bash(superdesign get-design:*)",
+      "Bash(superdesign get-design-draft:*)",
+      "Bash(Select-Object -Last 30)",
+      "Bash(psql:*)",
+      "Bash(cmd /c \"taskkill /PID 28852 /F\")",
+      "Bash(cmd /c \"del /f c:\\\\Users\\\\Lenovo\\\\Desktop\\\\superdesign\\\\frontend\\\\.next\\\\dev\\\\lock 2>nul\")",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(cmd /c:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
