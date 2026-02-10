@@ -10,9 +10,28 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS configuration
+  // CORS configuration - Allow all localhost origins in development
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+
+      // Allow all localhost origins in development
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return callback(null, true);
+      }
+
+      // Allow specific production origins here
+      const allowedOrigins = [
+        'https://your-production-domain.com',
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],

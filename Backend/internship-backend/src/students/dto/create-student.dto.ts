@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator';
 
 export class CreateStudentDto {
   @IsString()
@@ -28,4 +28,13 @@ export class CreateStudentDto {
   @IsString()
   @IsOptional()
   cv_url?: string;
+
+  @IsString()
+  @IsOptional()
+  about?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  skills?: string[];
 }

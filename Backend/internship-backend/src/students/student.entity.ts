@@ -30,4 +30,10 @@ export class Student {
 
   @Column({ nullable: true })
   cv_url?: string;
+
+  @Column({ type: 'text', nullable: true })
+  about?: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  skills?: string[];
 }

@@ -74,6 +74,48 @@ export class StudentsService {
     return await this.studentRepository.save(student);
   }
 
+  // ✅ Update CV via user ID
+  async updateCvByUserId(userId: string, cvPath: string): Promise<Student> {
+    const student = await this.findByUserId(userId);
+    student.cv_url = cvPath;
+    return await this.studentRepository.save(student);
+  }
+
+  // ✅ Delete CV via user ID
+  async deleteCvByUserId(userId: string): Promise<Student> {
+    const student = await this.findByUserId(userId);
+    student.cv_url = undefined;
+    return await this.studentRepository.save(student);
+  }
+
+  // ✅ Add skill to student profile
+  async addSkill(userId: string, skill: string): Promise<Student> {
+    const student = await this.findByUserId(userId);
+
+    // Initialize skills array if it doesn't exist
+    if (!student.skills) {
+      student.skills = [];
+    }
+
+    // Don't add if skill already exists
+    if (!student.skills.includes(skill)) {
+      student.skills.push(skill);
+    }
+
+    return await this.studentRepository.save(student);
+  }
+
+  // ✅ Remove skill from student profile
+  async removeSkill(userId: string, skill: string): Promise<Student> {
+    const student = await this.findByUserId(userId);
+
+    if (student.skills) {
+      student.skills = student.skills.filter(s => s !== skill);
+    }
+
+    return await this.studentRepository.save(student);
+  }
+
   async remove(id: string): Promise<void> {
     const result = await this.studentRepository.delete(id);
     if (result.affected === 0) throw new NotFoundException('Student not found');

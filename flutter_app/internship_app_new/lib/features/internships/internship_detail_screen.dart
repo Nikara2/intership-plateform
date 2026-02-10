@@ -64,9 +64,10 @@ class InternshipDetailScreen extends StatelessWidget {
                 onPressed: alreadyApplied
                     ? null
                     : () {
-                  applications.apply(title, company);
+                  // TODO: Implement with applyToOffer(offerId, accessToken)
+                  // This screen needs to be updated to use offer IDs
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Candidature envoyée !')),
+                    const SnackBar(content: Text('Utilisez la page Offres pour postuler')),
                   );
                 },
                 style: ElevatedButton.styleFrom(

@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Permissions for file picker -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Nous avons besoin d'accéder à vos photos pour télécharger votre CV</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Nous avons besoin d'accéder à votre caméra pour prendre une photo de votre CV</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Nous avons besoin d'accéder à votre microphone</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

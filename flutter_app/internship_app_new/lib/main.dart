@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
-import 'providers/application_provider.dart'; // ✅ import correct
-import 'features/auth/login_screen.dart';
+import 'providers/application_provider.dart';
+import 'providers/offers_provider.dart';
+import 'providers/notifications_provider.dart';
+import 'providers/theme_provider.dart';
+import 'features/auth/onboarding_screen.dart';
 import 'features/home/home_screen.dart';
 
 void main() {
@@ -19,25 +22,36 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(
-          create: (_) => AuthProvider(),
+          create: (_) => AuthProvider()..initialize(), // Initialize on startup
         ),
         ChangeNotifierProvider<ApplicationsProvider>(
           create: (_) => ApplicationsProvider(),
         ),
+        ChangeNotifierProvider<OffersProvider>(
+          create: (_) => OffersProvider(),
+        ),
+        ChangeNotifierProvider<NotificationsProvider>(
+          create: (_) => NotificationsProvider(),
+        ),
+        ChangeNotifierProvider<ThemeProvider>(
+          create: (_) => ThemeProvider(),
+        ),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
+      child: Consumer2<AuthProvider, ThemeProvider>(
+        builder: (context, auth, themeProvider, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Internship App',
+            title: 'StageConnect',
 
-            // 🎨 Thème global
+            // 🎨 Thème global (dynamique selon le mode sombre/clair)
             theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
             // Page d'accueil selon l'authentification
             home: auth.isAuthenticated
                 ? const HomeScreen()
-                : LoginScreen(),
+                : const OnboardingScreen(),
           );
         },
       ),
