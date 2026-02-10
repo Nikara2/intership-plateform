@@ -1,38 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
+import { companyAPI } from '@/lib/api';
 
 export default function CompanyProfilePage() {
   const [formData, setFormData] = useState({
-    companyName: 'TechGlobal SAS',
-    sector: 'it',
-    address: '15 Rue de l\'Innovation, 75008 Paris, France',
-    phone: '+33 1 45 22 90 00',
-    email: 'recrutement@techglobal.com',
-    website: 'https://www.techglobal-solutions.com',
-    description: 'TechGlobal est un leader innovant dans le domaine du développement logiciel sur mesure. Fondée avec la conviction que la technologie doit être accessible et agile, notre entreprise accompagne les grands comptes dans leur transformation digitale.\n\nNous cultivons un environnement de travail stimulant où chaque talent peut s\'exprimer. Nos équipes travaillent sur des projets variés allant de l\'IA générative aux infrastructures Cloud haute disponibilité. Rejoindre TechGlobal, c\'est choisir l\'excellence technique et une aventure humaine unique.',
-    size: '51-200',
-    foundedYear: 2012,
-    employeeCount: 142,
+    companyName: '',
+    sector: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    description: '',
+    size: '',
+    foundedYear: new Date().getFullYear(),
+    employeeCount: 0,
   });
-
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [stats, setStats] = useState({ offersCount: 0, averageRating: 0 });
+
+  useEffect(() => {
+    fetchProfile();
+    fetchStats();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const company = await companyAPI.getProfile();
+      setFormData({
+        companyName: company.name || '',
+        sector: company.sector || '',
+        address: company.address || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        website: company.website || '',
+        description: company.description || '',
+        size: company.size || '',
+        foundedYear: company.founded_year || new Date().getFullYear(),
+        employeeCount: company.employee_count || 0,
+      });
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      setToast({ message: 'Erreur lors du chargement du profil', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const data = await companyAPI.getStats();
+      setStats({
+        offersCount: data.active_offers_count || 0,
+        averageRating: data.average_rating || 0,
+      });
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const getSectorLabel = (sectorCode: string): string => {
+    const sectors: Record<string, string> = {
+      it: 'TECH & IT',
+      finance: 'FINANCE',
+      marketing: 'MARKETING',
+      health: 'SANTÉ',
+      energy: 'ÉNERGIE',
+    };
+    return sectors[sectorCode] || sectorCode.toUpperCase();
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    setToast({ message: 'Modifications enregistrées avec succès !', type: 'success' });
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await companyAPI.updateProfile({
+        name: formData.companyName,
+        sector: formData.sector,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email,
+        website: formData.website,
+        description: formData.description,
+        size: formData.size,
+        founded_year: formData.foundedYear,
+        employee_count: formData.employeeCount,
+      });
+      setToast({ message: 'Modifications enregistrées avec succès !', type: 'success' });
+    } catch (error: any) {
+      console.error('Failed to save profile:', error);
+      setToast({ message: error.message || 'Erreur lors de la sauvegarde', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
+    fetchProfile(); // Reload original data
     setToast({ message: 'Modifications annulées', type: 'info' });
   };
+
+  if (loading) {
+    return (
+      <main className="flex-1 max-w-[1440px] mx-auto w-full px-8 py-10">
+        <div className="flex items-center justify-center h-96">
+          <Icon icon="lucide:loader-2" className="text-5xl text-blue-600 animate-spin" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <>
@@ -57,9 +143,11 @@ export default function CompanyProfilePage() {
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-[#1E40AF] rounded-xl hover:opacity-90 transition-all shadow-md"
+              disabled={saving}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-[#1E40AF] rounded-xl hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Enregistrer les modifications
+              {saving && <Icon icon="lucide:loader-2" className="animate-spin" />}
+              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </button>
           </div>
         </div>
@@ -282,9 +370,11 @@ export default function CompanyProfilePage() {
             <div className="flex items-center gap-4 pt-4 pb-10">
               <button
                 onClick={handleSave}
-                className="px-8 py-4 bg-[#1E40AF] text-white font-bold rounded-2xl hover:bg-blue-900 transition-all shadow-lg flex-1 md:flex-none"
+                disabled={saving}
+                className="px-8 py-4 bg-[#1E40AF] text-white font-bold rounded-2xl hover:bg-blue-900 transition-all shadow-lg flex-1 md:flex-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Enregistrer les changements
+                {saving && <Icon icon="lucide:loader-2" className="animate-spin" />}
+                {saving ? 'Enregistrement...' : 'Enregistrer les changements'}
               </button>
               <button
                 onClick={handleCancel}
@@ -305,31 +395,33 @@ export default function CompanyProfilePage() {
                 </span>
                 <div className="flex flex-col items-center text-center">
                   <img
-                    src="https://api.dicebear.com/7.x/shapes/svg?seed=company-logo"
+                    src={`https://api.dicebear.com/7.x/shapes/svg?seed=${formData.companyName || 'company'}`}
                     alt="Logo"
                     className="w-24 h-24 rounded-2xl bg-slate-50 border border-slate-200 mb-4"
                   />
                   <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                    TechGlobal SAS
+                    {formData.companyName || 'Nom de l\'entreprise'}
                   </h3>
-                  <div className="mt-2 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-100 uppercase">
-                    Tech & IT
-                  </div>
+                  {formData.sector && (
+                    <div className="mt-2 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-100 uppercase">
+                      {getSectorLabel(formData.sector)}
+                    </div>
+                  )}
                   <p className="mt-4 text-sm text-slate-500 line-clamp-3 px-4">
-                    TechGlobal est un leader innovant dans le domaine du développement logiciel
-                    sur mesure. Fondée avec la conviction que la technologie doit être accessible
-                    et agile...
+                    {formData.description || 'Aucune description pour le moment...'}
                   </p>
 
                   <div className="w-full grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-100">
                     <div className="text-center">
-                      <p className="text-2xl font-black text-[#1E40AF]">12</p>
+                      <p className="text-2xl font-black text-[#1E40AF]">{stats.offersCount}</p>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Offres Actives
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-black text-[#1E40AF]">4.8</p>
+                      <p className="text-2xl font-black text-[#1E40AF]">
+                        {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '-'}
+                      </p>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Note Moyenne
                       </p>

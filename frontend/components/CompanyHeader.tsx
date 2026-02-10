@@ -344,18 +344,27 @@ export default function CompanyHeader() {
 
             {/* User Profile - Desktop */}
             <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-slate-200">
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-900 truncate max-w-[150px]">{userEmail}</p>
-                <p className="text-xs text-slate-500">Recruteur</p>
-              </div>
+              <button
+                onClick={() => router.push('/company/profile')}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-900 truncate max-w-[150px]">{userEmail}</p>
+                  <p className="text-xs text-slate-500">Recruteur</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-slate-100 hover:border-[#1E40AF] transition-all">
+                  <img
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail}&backgroundColor=1e40af`}
+                    alt="User avatar"
+                  />
+                </div>
+              </button>
               <button
                 onClick={handleLogout}
-                className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-slate-100 hover:border-[#1E40AF] transition-all"
+                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Déconnexion"
               >
-                <img
-                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail}&backgroundColor=1e40af`}
-                  alt="User avatar"
-                />
+                <Icon icon="lucide:log-out" className="text-xl" />
               </button>
             </div>
 

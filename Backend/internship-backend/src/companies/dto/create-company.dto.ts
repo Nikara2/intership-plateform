@@ -21,4 +21,22 @@ export class CreateCompanyDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  website?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  size?: string;
+
+  @IsOptional()
+  founded_year?: number;
+
+  @IsOptional()
+  employee_count?: number;
 }

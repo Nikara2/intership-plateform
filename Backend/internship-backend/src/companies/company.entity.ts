@@ -27,4 +27,19 @@ export class Company {
 
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @Column({ nullable: true })
+  website?: string;
+
+  @Column({ nullable: true })
+  email?: string;
+
+  @Column({ nullable: true })
+  size?: string;
+
+  @Column({ type: 'int', nullable: true })
+  founded_year?: number;
+
+  @Column({ type: 'int', nullable: true })
+  employee_count?: number;
 }
