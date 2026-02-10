@@ -65,16 +65,16 @@ export class ApplicationsController {
     return this.applicationsService.findById(id);
   }
 
-  // 🔹 SUPERVISEUR UNIQUEMENT : changer le statut
+  // 🔹 COMPANY / SUPERVISEUR : changer le statut
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPERVISOR)
+  @Roles(UserRole.COMPANY, UserRole.SUPERVISOR)
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: ApplicationStatus,
     @Req() req,
   ) {
-    return this.applicationsService.updateStatus(id, status, req.user.id);
+    return this.applicationsService.updateStatus(id, status, req.user);
   }
 
   // 🔹 Admin : suppression

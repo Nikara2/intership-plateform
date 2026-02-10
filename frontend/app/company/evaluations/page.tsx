@@ -1,72 +1,122 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { applicationsAPI, evaluationsAPI } from '@/lib/api';
 
-interface Intern {
-  id: number;
-  name: string;
-  role: string;
-  avatar: string;
-  period: string;
-  status: 'pending' | 'evaluated';
-  score?: number;
-  scoreLabel?: string;
+interface Application {
+  id: string;
+  student: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  offer: {
+    title: string;
+  };
+  applied_at: string;
+  status: string;
+}
+
+interface Evaluation {
+  id: string;
+  application_id: string;
+  score: number;
+  comment?: string;
+  evaluated_at: string;
+  application?: Application;
+}
+
+interface ApplicationWithEval extends Application {
+  evaluation?: Evaluation;
 }
 
 export default function CompanyEvaluationsPage() {
+  const [applications, setApplications] = useState<ApplicationWithEval[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [showEvaluateModal, setShowEvaluateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ApplicationWithEval | null>(null);
+
   const [score, setScore] = useState(85);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const interns: Intern[] = [
-    {
-      id: 1,
-      name: 'Thomas Bernard',
-      role: 'Développeur Fullstack Junior',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas',
-      period: '01 Juin 2024 - 31 Août 2024',
-      status: 'pending',
-    },
-    {
-      id: 2,
-      name: 'Clara Morel',
-      role: 'Designer UX/UI',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Clara',
-      period: '15 Mai 2024 - 15 Août 2024',
-      status: 'evaluated',
-      score: 92,
-      scoreLabel: 'Excellent',
-    },
-    {
-      id: 3,
-      name: 'Julian Vazquez',
-      role: 'Assistant Marketing',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Julian',
-      period: '01 Mars 2024 - 30 Juin 2024',
-      status: 'evaluated',
-      score: 74,
-      scoreLabel: 'Bon',
-    },
-    {
-      id: 4,
-      name: 'Emma Lemoine',
-      role: 'Chargée de Recrutement',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-      period: '01 Juin 2024 - 31 Déc 2024',
-      status: 'pending',
-    },
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const openEvaluateModal = (intern: Intern) => {
-    setSelectedIntern(intern);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all applications and evaluations
+      const [appsData, evalsData] = await Promise.all([
+        applicationsAPI.getAll(),
+        evaluationsAPI.getAll(),
+      ]);
+
+      // Filter only COMPLETED applications
+      const completedApps = appsData.filter((app: Application) => app.status === 'COMPLETED');
+
+      // Map evaluations to their applications
+      const evaluationsMap = new Map(
+        evalsData.map((e: Evaluation) => [e.application_id, e])
+      );
+
+      const appsWithEvals = completedApps.map((app: Application) => ({
+        ...app,
+        evaluation: evaluationsMap.get(app.id),
+      }));
+
+      setApplications(appsWithEvals);
+      setEvaluations(evalsData);
+    } catch (err: any) {
+      console.error('Failed to fetch data:', err);
+      setError(err.message || 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEvaluateModal = (app: ApplicationWithEval) => {
+    setSelectedApplication(app);
+    setScore(85);
+    setComment('');
     setShowEvaluateModal(true);
   };
 
-  const openViewModal = (intern: Intern) => {
-    setSelectedIntern(intern);
+  const openViewModal = (app: ApplicationWithEval) => {
+    setSelectedApplication(app);
     setShowViewModal(true);
+  };
+
+  const handleSubmitEvaluation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedApplication) return;
+
+    try {
+      setSubmitting(true);
+      await evaluationsAPI.create({
+        application_id: selectedApplication.id,
+        score,
+        comment: comment.trim() || undefined,
+      });
+
+      // Refresh data
+      await fetchData();
+      setShowEvaluateModal(false);
+      setSelectedApplication(null);
+    } catch (err: any) {
+      console.error('Failed to submit evaluation:', err);
+      alert('Erreur lors de la soumission: ' + (err.message || 'Erreur inconnue'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -80,6 +130,52 @@ export default function CompanyEvaluationsPage() {
     if (score >= 60) return 'text-amber-500';
     return 'text-red-600';
   };
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 90) return 'Excellent';
+    if (score >= 80) return 'Très Bien';
+    if (score >= 70) return 'Bien';
+    if (score >= 60) return 'Assez Bien';
+    return 'Insuffisant';
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Icon icon="lucide:loader-2" className="text-5xl text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Chargement des évaluations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Icon icon="lucide:alert-circle" className="text-5xl text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 font-semibold mb-2">Erreur de chargement</p>
+          <p className="text-slate-600 mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -95,127 +191,100 @@ export default function CompanyEvaluationsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium flex items-center gap-2 hover:bg-slate-50 transition-all">
-              <Icon icon="lucide:download" />
-              Exporter (.csv)
-            </button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative col-span-1 md:col-span-2">
-              <Icon
-                icon="lucide:search"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl"
-              />
-              <input
-                type="text"
-                placeholder="Rechercher un stagiaire..."
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E40AF] outline-none transition-all"
-              />
-            </div>
-            <select className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E40AF] outline-none transition-all appearance-none cursor-pointer">
-              <option value="all">Tous les status</option>
-              <option value="pending">À évaluer</option>
-              <option value="done">Évalués</option>
-            </select>
-            <div className="relative">
-              <Icon
-                icon="lucide:calendar"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl"
-              />
-              <input
-                type="text"
-                placeholder="Période de stage"
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E40AF] outline-none transition-all"
-              />
+            <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium">
+              {applications.length} stage{applications.length > 1 ? 's' : ''} terminé{applications.length > 1 ? 's' : ''}
             </div>
           </div>
         </div>
 
-        {/* Interns Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {interns.map((intern) => (
-            <div
-              key={intern.id}
-              className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex gap-6"
-            >
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
-                <img src={intern.avatar} alt={intern.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 flex flex-col">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">{intern.name}</h3>
-                    <p className="text-[#1E40AF] font-medium">{intern.role}</p>
-                  </div>
-                  {intern.status === 'pending' ? (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                      À évaluer
+        {applications.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+            <Icon icon="lucide:clipboard-list" className="text-6xl text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-700 mb-2">Aucun stage terminé</h3>
+            <p className="text-slate-500">
+              Les stagiaires dont le stage est terminé apparaîtront ici pour être évalués.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {applications.map((app) => {
+              const studentName = `${app.student.first_name} ${app.student.last_name}`;
+              const isEvaluated = !!app.evaluation;
+
+              return (
+                <div
+                  key={app.id}
+                  className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex gap-6"
+                >
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-teal-500 shrink-0 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-white">
+                      {app.student.first_name[0]}{app.student.last_name[0]}
                     </span>
-                  ) : (
-                    <div className="flex flex-col items-end">
-                      <span className={`text-3xl font-black leading-none ${getScoreTextColor(intern.score!)}`}>
-                        {intern.score}
-                        <span className="text-base font-medium">/100</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                        {intern.scoreLabel}
-                      </span>
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">{studentName}</h3>
+                        <p className="text-[#1E40AF] font-medium">{app.offer.title}</p>
+                      </div>
+                      {isEvaluated ? (
+                        <div className="flex flex-col items-end">
+                          <span className={`text-3xl font-black leading-none ${getScoreTextColor(app.evaluation!.score)}`}>
+                            {app.evaluation!.score}
+                            <span className="text-base font-medium">/100</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                            {getScoreLabel(app.evaluation!.score)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                          À évaluer
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div className="mt-4 flex items-center gap-2 text-slate-500 text-sm">
+                      <Icon icon="lucide:calendar-check" />
+                      <span>Terminé le {formatDate(app.applied_at)}</span>
+                    </div>
+                    <div className="mt-auto pt-6">
+                      {isEvaluated ? (
+                        <button
+                          onClick={() => openViewModal(app)}
+                          className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                        >
+                          <Icon icon="lucide:eye" />
+                          Voir l&apos;évaluation
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => openEvaluateModal(app)}
+                          className="w-full py-2.5 bg-[#1E40AF] hover:bg-blue-900 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                        >
+                          <Icon icon="lucide:clipboard-check" />
+                          Évaluer maintenant
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 flex items-center gap-2 text-slate-500 text-sm">
-                  <Icon icon="lucide:calendar-range" />
-                  <span>{intern.period}</span>
-                </div>
-                <div className="mt-auto pt-6">
-                  {intern.status === 'pending' ? (
-                    <button
-                      onClick={() => openEvaluateModal(intern)}
-                      className="w-full py-2.5 bg-[#1E40AF] hover:bg-blue-900 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                    >
-                      <Icon icon="lucide:clipboard-check" />
-                      Évaluer maintenant
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => openViewModal(intern)}
-                      className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                    >
-                      <Icon icon="lucide:eye" />
-                      Voir l&apos;évaluation
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       {/* Evaluate Modal */}
-      {showEvaluateModal && selectedIntern && (
+      {showEvaluateModal && selectedApplication && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="px-8 py-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedIntern.avatar}
-                  alt={selectedIntern.name}
-                  className="w-14 h-14 rounded-xl border border-white shadow-sm"
-                />
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Évaluer {selectedIntern.name}
-                  </h2>
-                  <p className="text-slate-500">
-                    {selectedIntern.role} • {selectedIntern.period}
-                  </p>
-                </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  Évaluer {selectedApplication.student.first_name} {selectedApplication.student.last_name}
+                </h2>
+                <p className="text-slate-500">{selectedApplication.offer.title}</p>
               </div>
               <button
                 onClick={() => setShowEvaluateModal(false)}
@@ -226,51 +295,21 @@ export default function CompanyEvaluationsPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-8">
-              <form className="space-y-10">
-                {/* Supervisor Info */}
+            <form onSubmit={handleSubmitEvaluation} className="flex-1 overflow-y-auto p-8">
+              <div className="space-y-8">
+                {/* Global Score */}
                 <section>
                   <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <span className="w-8 h-8 rounded-lg bg-blue-100 text-[#1E40AF] flex items-center justify-center text-sm">
                       01
                     </span>
-                    Informations Superviseur
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">Nom du superviseur</label>
-                      <input
-                        type="text"
-                        placeholder="Ex: Jean Dupont"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E40AF]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">
-                        Poste du superviseur
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Ex: CTO"
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E40AF]"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                {/* Global Score */}
-                <section>
-                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-blue-100 text-[#1E40AF] flex items-center justify-center text-sm">
-                      02
-                    </span>
-                    Évaluation Globale
+                    Score Global
                   </h3>
                   <div className="bg-slate-50 p-8 rounded-2xl flex flex-col md:flex-row items-center gap-10">
                     <div className="flex-1 w-full space-y-4">
                       <div className="flex justify-between">
                         <label className="text-sm font-bold text-slate-700">
-                          Score de performance
+                          Score de performance <span className="text-red-500">*</span>
                         </label>
                         <span className="text-[#1E40AF] font-black">{score}%</span>
                       </div>
@@ -281,6 +320,7 @@ export default function CompanyEvaluationsPage() {
                         value={score}
                         onChange={(e) => setScore(Number(e.target.value))}
                         className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#1E40AF]"
+                        required
                       />
                       <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         <span>Insuffisant</span>
@@ -288,60 +328,12 @@ export default function CompanyEvaluationsPage() {
                       </div>
                     </div>
                     <div
-                      className={`w-40 h-40 rounded-full border-8 border-white shadow-xl flex flex-col items-center justify-center shrink-0 ${getScoreColor(score)}`}
+                      className={`w-32 h-32 rounded-full border-8 border-white shadow-xl flex flex-col items-center justify-center shrink-0 ${getScoreColor(score)}`}
                     >
                       <span className="text-4xl font-black text-white">{score}</span>
                       <span className="text-xs font-bold text-white/80 uppercase tracking-widest">
-                        Score
+                        {getScoreLabel(score)}
                       </span>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Criteria */}
-                <section>
-                  <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-blue-100 text-[#1E40AF] flex items-center justify-center text-sm">
-                      03
-                    </span>
-                    Critères détaillés
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Compétences techniques</span>
-                      <div className="flex gap-1 text-xl text-amber-400">
-                        {[1, 2, 3, 4].map((i) => (
-                          <Icon key={i} icon="ic:round-star" />
-                        ))}
-                        <Icon icon="ic:round-star-outline" className="text-slate-300" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Communication</span>
-                      <div className="flex gap-1 text-xl text-amber-400">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <Icon key={i} icon="ic:round-star" />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Comportement professionnel</span>
-                      <div className="flex gap-1 text-xl text-amber-400">
-                        {[1, 2, 3].map((i) => (
-                          <Icon key={i} icon="ic:round-star" />
-                        ))}
-                        <Icon icon="ic:round-star-half" />
-                        <Icon icon="ic:round-star-outline" className="text-slate-300" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Travail d&apos;équipe</span>
-                      <div className="flex gap-1 text-xl text-amber-400">
-                        {[1, 2, 3, 4].map((i) => (
-                          <Icon key={i} icon="ic:round-star" />
-                        ))}
-                        <Icon icon="ic:round-star-outline" className="text-slate-300" />
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -350,82 +342,53 @@ export default function CompanyEvaluationsPage() {
                 <section>
                   <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                     <span className="w-8 h-8 rounded-lg bg-blue-100 text-[#1E40AF] flex items-center justify-center text-sm">
-                      04
+                      02
                     </span>
-                    Commentaires
+                    Commentaire
                   </h3>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">
-                        Commentaire général <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        required
-                        rows={4}
-                        placeholder="Décrivez la progression globale du stagiaire..."
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E40AF] resize-none"
-                      ></textarea>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-green-700">Points forts</label>
-                        <textarea
-                          rows={3}
-                          placeholder="Qu'est-ce qui a été particulièrement bien fait ?"
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-green-600 resize-none"
-                        ></textarea>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-amber-700">
-                          Axes d&apos;amélioration
-                        </label>
-                        <textarea
-                          rows={3}
-                          placeholder="Quels sont les points à travailler ?"
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-600 resize-none"
-                        ></textarea>
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      Commentaire d&apos;évaluation (optionnel)
+                    </label>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={6}
+                      placeholder="Décrivez la performance du stagiaire, ses points forts et axes d'amélioration..."
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#1E40AF] resize-none"
+                    />
                   </div>
                 </section>
-
-                {/* Recommendation */}
-                <section className="bg-blue-50 p-6 rounded-2xl">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                      <h4 className="font-bold text-slate-900">Recommandation finale</h4>
-                      <p className="text-sm text-slate-600">
-                        Souhaitez-vous retravailler avec ce profil ?
-                      </p>
-                    </div>
-                    <div className="flex gap-4">
-                      <label className="cursor-pointer flex items-center gap-3 px-6 py-3 bg-white rounded-xl border border-slate-200 hover:border-[#1E40AF] transition-all">
-                        <input type="radio" name="recommend" className="w-4 h-4 text-[#1E40AF]" />
-                        <span className="font-bold text-slate-700">Oui</span>
-                      </label>
-                      <label className="cursor-pointer flex items-center gap-3 px-6 py-3 bg-white rounded-xl border border-slate-200 hover:border-[#1E40AF] transition-all">
-                        <input type="radio" name="recommend" className="w-4 h-4 text-[#1E40AF]" />
-                        <span className="font-bold text-slate-700">Non</span>
-                      </label>
-                    </div>
-                  </div>
-                </section>
-              </form>
-            </div>
+              </div>
+            </form>
 
             {/* Modal Footer */}
             <div className="px-8 py-6 bg-white border-t border-slate-200 flex flex-col md:flex-row justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setShowEvaluateModal(false)}
-                className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-all"
+                disabled={submitting}
+                className="px-6 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-all disabled:opacity-50"
               >
                 Annuler
               </button>
-              <button className="px-6 py-3 text-[#1E40AF] bg-blue-50 border border-blue-200 font-bold hover:bg-blue-100 rounded-xl transition-all">
-                Enregistrer brouillon
-              </button>
-              <button className="px-8 py-3 bg-[#1E40AF] text-white font-bold hover:bg-blue-900 rounded-xl shadow-lg shadow-blue-800/20 transition-all">
-                Soumettre l&apos;évaluation
+              <button
+                type="button"
+                onClick={handleSubmitEvaluation}
+                disabled={submitting}
+                className="px-8 py-3 bg-[#1E40AF] text-white font-bold hover:bg-blue-900 rounded-xl shadow-lg shadow-blue-800/20 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Icon icon="lucide:loader-2" className="animate-spin" />
+                    Soumission...
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="lucide:check" />
+                    Soumettre l&apos;évaluation
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -433,112 +396,59 @@ export default function CompanyEvaluationsPage() {
       )}
 
       {/* View Modal */}
-      {showViewModal && selectedIntern && (
+      {showViewModal && selectedApplication && selectedApplication.evaluation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="px-8 py-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedIntern.avatar}
-                  alt={selectedIntern.name}
-                  className="w-14 h-14 rounded-xl border border-white shadow-sm"
-                />
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Évaluation de {selectedIntern.name}
-                  </h2>
-                  <p className="text-slate-500">
-                    {selectedIntern.role} • {selectedIntern.period}
-                  </p>
-                </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  Évaluation de {selectedApplication.student.first_name} {selectedApplication.student.last_name}
+                </h2>
+                <p className="text-slate-500">{selectedApplication.offer.title}</p>
               </div>
-              <div className="flex gap-2">
-                <button className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                  <Icon icon="lucide:edit-3" className="text-2xl text-slate-500" />
-                </button>
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                >
-                  <Icon icon="lucide:x" className="text-2xl text-slate-500" />
-                </button>
-              </div>
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+              >
+                <Icon icon="lucide:x" className="text-2xl text-slate-500" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-8">
-              <div className="space-y-12">
+              <div className="space-y-8">
                 <div className="flex flex-col md:flex-row items-center gap-10">
                   <div
-                    className={`w-40 h-40 rounded-full border-8 border-green-50 flex flex-col items-center justify-center shadow-inner shrink-0 ${getScoreColor(selectedIntern.score!)}`}
+                    className={`w-40 h-40 rounded-full border-8 border-white flex flex-col items-center justify-center shadow-xl shrink-0 ${getScoreColor(selectedApplication.evaluation.score)}`}
                   >
-                    <span className="text-5xl font-black text-white">{selectedIntern.score}</span>
+                    <span className="text-5xl font-black text-white">{selectedApplication.evaluation.score}</span>
                     <span className="text-xs font-bold text-white/80 uppercase tracking-widest">
-                      {selectedIntern.scoreLabel}
+                      {getScoreLabel(selectedApplication.evaluation.score)}
                     </span>
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">
-                      Rapport du superviseur
+                      Évalué le
                     </p>
-                    <p className="text-xl font-bold text-slate-900 mb-2">Sarah Jenkins — Creative Director</p>
-                    <p className="text-slate-600 italic leading-relaxed">
-                      &ldquo;{selectedIntern.name} a été un atout majeur pour l&apos;équipe. Sa capacité à
-                      comprendre les problématiques complexes et à proposer des solutions élégantes est
-                      remarquable pour son niveau.&rdquo;
+                    <p className="text-xl font-bold text-slate-900 mb-4">
+                      {formatDate(selectedApplication.evaluation.evaluated_at)}
                     </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-4">
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="font-medium text-slate-600">Compétences techniques</span>
-                    <span className="font-bold text-slate-900">4.5 / 5</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="font-medium text-slate-600">Communication</span>
-                    <span className="font-bold text-slate-900">5.0 / 5</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="font-medium text-slate-600">Travail d&apos;équipe</span>
-                    <span className="font-bold text-slate-900">4.8 / 5</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="font-medium text-slate-600">Autonomie</span>
-                    <span className="font-bold text-slate-900">4.2 / 5</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-2xl p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div>
-                    <h4 className="text-green-700 font-bold mb-3 flex items-center gap-2">
-                      <Icon icon="lucide:check-circle" />
-                      Points Forts
-                    </h4>
-                    <p className="text-slate-600 text-sm leading-relaxed">
-                      Prototypage rapide, excellente maîtrise de Figma, grand sens de l&apos;empathie
-                      utilisateur et ponctualité exemplaire.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="text-amber-700 font-bold mb-3 flex items-center gap-2">
-                      <Icon icon="lucide:trending-up" />
-                      Axes d&apos;amélioration
-                    </h4>
-                    <p className="text-slate-600 text-sm leading-relaxed">
-                      Prendre plus de leadership lors des présentations client, continuer à approfondir
-                      les connaissances en design system.
-                    </p>
+                    {selectedApplication.evaluation.comment && (
+                      <>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">
+                          Commentaire
+                        </p>
+                        <p className="text-slate-600 leading-relaxed">
+                          {selectedApplication.evaluation.comment}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="px-8 py-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-              <button className="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2">
-                <Icon icon="lucide:file-text" />
-                Télécharger PDF
-              </button>
               <button
                 onClick={() => setShowViewModal(false)}
                 className="px-8 py-3 bg-slate-900 text-white font-bold hover:bg-slate-800 rounded-xl transition-all"

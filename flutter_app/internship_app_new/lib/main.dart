@@ -7,6 +7,7 @@ import 'providers/application_provider.dart';
 import 'providers/offers_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/evaluations_provider.dart';
 import 'features/auth/onboarding_screen.dart';
 import 'features/home/home_screen.dart';
 
@@ -35,6 +36,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<ThemeProvider>(
           create: (_) => ThemeProvider(),
+        ),
+        ChangeNotifierProvider<EvaluationsProvider>(
+          create: (_) => EvaluationsProvider(),
         ),
       ],
       child: Consumer2<AuthProvider, ThemeProvider>(

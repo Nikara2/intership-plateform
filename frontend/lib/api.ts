@@ -127,3 +127,14 @@ export const applicationsAPI = {
   getById: (id: string) => api.get(`/applications/${id}`),
   updateStatus: (id: string, status: string) => api.patch(`/applications/${id}/status`, { status }),
 };
+
+// Evaluations API
+export const evaluationsAPI = {
+  getAll: () => api.get('/evaluations'),
+  getById: (id: string) => api.get(`/evaluations/${id}`),
+  create: (data: { application_id: string; score: number; comment?: string }) =>
+    api.post('/evaluations', data),
+  update: (id: string, data: { score?: number; comment?: string }) =>
+    api.patch(`/evaluations/${id}`, data),
+  delete: (id: string) => api.delete(`/evaluations/${id}`),
+};

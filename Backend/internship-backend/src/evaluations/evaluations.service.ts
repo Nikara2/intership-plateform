@@ -13,6 +13,8 @@ import { UpdateEvaluationDto } from './dto/update-evaluation.dto';
 import { SupervisorsService } from '../supervisors/supervisor.service';
 import { ApplicationsService } from '../applications/applications.service';
 import { ApplicationStatus } from '../applications/dto/apply.dto';
+import { CompaniesService } from '../companies/companies.service';
+import { UserRole } from '../common/enums/user-role.enum';
 
 @Injectable()
 export class EvaluationsService {
@@ -21,12 +23,13 @@ export class EvaluationsService {
     private readonly evaluationRepository: Repository<Evaluation>,
     private readonly supervisorsService: SupervisorsService,
     private readonly applicationsService: ApplicationsService,
+    private readonly companiesService: CompaniesService,
   ) {}
 
   // 🔹 Créer une évaluation
   async create(
     dto: CreateEvaluationDto,
-    supervisor_user_id: string,
+    user: any, // User with id and role
   ): Promise<Evaluation> {
     // ❌ Une seule évaluation par candidature
     const exists = await this.evaluationRepository.findOne({
@@ -38,9 +41,6 @@ export class EvaluationsService {
       );
     }
 
-    const supervisor =
-      await this.supervisorsService.findByUserId(supervisor_user_id);
-
     const application =
       await this.applicationsService.findWithCompany(dto.application_id);
 
@@ -51,8 +51,25 @@ export class EvaluationsService {
       );
     }
 
+    let supervisor_id: string | undefined;
+    let company_id: string;
+
+    // Handle SUPERVISOR role
+    if (user.role === UserRole.SUPERVISOR) {
+      const supervisor = await this.supervisorsService.findByUserId(user.id);
+      supervisor_id = supervisor.id;
+      company_id = supervisor.company_id;
+    }
+    // Handle COMPANY role
+    else if (user.role === UserRole.COMPANY) {
+      const company = await this.companiesService.findByUserId(user.id);
+      company_id = company.id;
+    } else {
+      throw new ForbiddenException('Only COMPANY or SUPERVISOR can create evaluations');
+    }
+
     // ❌ Sécurité entreprise
-    if (application.offer.company_id !== supervisor.company_id) {
+    if (application.offer.company_id !== company_id) {
       throw new ForbiddenException(
         'You cannot evaluate applications outside your company',
       );
@@ -60,17 +77,34 @@ export class EvaluationsService {
 
     const evaluation = this.evaluationRepository.create({
       ...dto,
-      supervisor_id: supervisor.id,
+      supervisor_id,
     });
 
     return this.evaluationRepository.save(evaluation);
   }
 
-  // 🔹 Toutes les évaluations (admin / superviseur)
-  async findAll(supervisor_user_id?: string): Promise<Evaluation[]> {
-    if (supervisor_user_id) {
-      const supervisor =
-        await this.supervisorsService.findByUserId(supervisor_user_id);
+  // 🔹 Toutes les évaluations (admin / superviseur / company)
+  async findAll(user?: any): Promise<Evaluation[]> {
+    if (user) {
+      let company_id: string;
+
+      if (user.role === UserRole.SUPERVISOR) {
+        const supervisor = await this.supervisorsService.findByUserId(user.id);
+        company_id = supervisor.company_id;
+      } else if (user.role === UserRole.COMPANY) {
+        const company = await this.companiesService.findByUserId(user.id);
+        company_id = company.id;
+      } else {
+        // SCHOOL_ADMIN can see all
+        return this.evaluationRepository.find({
+          relations: [
+            'application',
+            'application.offer',
+            'application.student',
+            'application.offer.company',
+          ],
+        });
+      }
 
       return this.evaluationRepository
         .createQueryBuilder('evaluation')
@@ -78,9 +112,7 @@ export class EvaluationsService {
         .leftJoinAndSelect('application.offer', 'offer')
         .leftJoinAndSelect('offer.company', 'company')
         .leftJoinAndSelect('application.student', 'student')
-        .where('company.id = :companyId', {
-          companyId: supervisor.company_id,
-        })
+        .where('company.id = :companyId', { companyId: company_id })
         .getMany();
     }
 

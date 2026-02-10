@@ -23,12 +23,12 @@ export class Evaluation {
   @Column()
   application_id: string;
 
-  @ManyToOne(() => Supervisor, { eager: true })
+  @ManyToOne(() => Supervisor, { eager: true, nullable: true })
   @JoinColumn({ name: 'supervisor_id' })
-  supervisor: Supervisor;
+  supervisor?: Supervisor;
 
-  @Column()
-  supervisor_id: string;
+  @Column({ nullable: true })
+  supervisor_id?: string;
 
   @Column({ type: 'int', default: 0 })
   score: number;

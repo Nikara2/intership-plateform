@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,6 +11,8 @@ import { Application } from './application.entity';
 import { ApplyDto, ApplicationStatus } from './dto/apply.dto';
 import { Offer } from '../offers/offer.entity';
 import { HistoriesService } from '../histories/histories.service';
+import { CompaniesService } from '../companies/companies.service';
+import { UserRole } from '../common/enums/user-role.enum';
 
 @Injectable()
 export class ApplicationsService {
@@ -21,6 +24,7 @@ export class ApplicationsService {
     private readonly offerRepository: Repository<Offer>,
 
     private readonly historiesService: HistoriesService, // service historique
+    private readonly companiesService: CompaniesService, // service entreprises
   ) {}
 
   // 🔹 Candidature d’un étudiant
@@ -81,13 +85,23 @@ export class ApplicationsService {
     });
   }
 
-  // 🔐 Mettre à jour le statut et enregistrer l’historique si COMPLETED
+  // 🔐 Mettre à jour le statut et enregistrer l'historique si COMPLETED
   async updateStatus(
     id: string,
     status: ApplicationStatus,
-    supervisor_user_id: string,
+    user: any, // User object with id and role
   ): Promise<Application> {
     const application = await this.findById(id);
+
+    // 🔒 Vérification de propriété pour COMPANY
+    if (user.role === UserRole.COMPANY) {
+      const company = await this.companiesService.findByUserId(user.id);
+      if (application.offer.company_id !== company.id) {
+        throw new ForbiddenException(
+          'You can only update applications for your own offers',
+        );
+      }
+    }
 
     // COMPLETED uniquement après ACCEPTED
     if (status === ApplicationStatus.COMPLETED && application.status !== ApplicationStatus.ACCEPTED) {
@@ -104,14 +118,14 @@ export class ApplicationsService {
     application.status = status;
     const updated = await this.applicationRepository.save(application);
 
-    // 🔹 Ajouter à l’historique si COMPLETED
+    // 🔹 Ajouter à l'historique si COMPLETED
     if (status === ApplicationStatus.COMPLETED) {
       await this.historiesService.create({
         application_id: updated.id,
         student_id: updated.student_id,
         offer_id: updated.offer_id,
         company_id: updated.offer.company_id,
-        supervisor_id: supervisor_user_id,
+        supervisor_id: user.id,
         status: ApplicationStatus.COMPLETED,
         applied_at: updated.applied_at,
       });
