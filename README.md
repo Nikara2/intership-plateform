@@ -1,8 +1,8 @@
-# 🎓 Plateforme de Gestion de Stages
+#  Plateforme de Gestion de Stages
 
 Plateforme web et mobile complète pour la gestion des stages étudiants, développée avec Flutter et NestJS.
 
-## 📋 Table des matières
+##  Table des matières
 
 - [Fonctionnalités](#fonctionnalités)
 - [Technologies utilisées](#technologies-utilisées)
@@ -16,28 +16,28 @@ Plateforme web et mobile complète pour la gestion des stages étudiants, dével
 
 ---
 
-## ✨ Fonctionnalités
+##  Fonctionnalités
 
 ### Pour les Étudiants
-- 🔐 **Authentification complète** (inscription, connexion, onboarding)
-- 👤 **Gestion du profil** avec upload de CV (PDF/DOC/DOCX)
-- 📊 **Suivi de complétion du profil** (66-100%)
-- 💼 **Recherche et filtrage d'offres** de stage
-- 📝 **Gestion des candidatures** avec tracking de statut
-- 🔔 **Système de notifications** avec persistance locale
-- 🌙 **Thème clair/sombre** (en développement)
-- ⚙️ **Paramètres et préférences**
-- ❓ **Centre d'aide** avec FAQ
+-  **Authentification complète** (inscription, connexion, onboarding)
+-  **Gestion du profil** avec upload de CV (PDF/DOC/DOCX)
+-  **Suivi de complétion du profil** (66-100%)
+-  **Recherche et filtrage d'offres** de stage
+-  **Gestion des candidatures** avec tracking de statut
+-  **Système de notifications** avec persistance locale
+-  **Thème clair/sombre** (en développement)
+-  **Paramètres et préférences**
+-  **Centre d'aide** avec FAQ
 
 ### Dashboard SuperDesign
-- 📈 Statistiques en temps réel
-- 🎨 Interface moderne et responsive
-- 🚀 Performance optimisée
-- 📱 Support multi-plateforme (Web, Android, iOS, Desktop)
+-  Statistiques en temps réel
+-  Interface moderne et responsive
+-  Performance optimisée
+-  Support multi-plateforme (Web, Android, iOS, Desktop)
 
 ---
 
-## 🛠️ Technologies utilisées
+##  Technologies utilisées
 
 ### Frontend
 - **Flutter** 3.x (Dart)
@@ -55,7 +55,7 @@ Plateforme web et mobile complète pour la gestion des stages étudiants, dével
 
 ---
 
-## 📦 Prérequis
+##  Prérequis
 
 Assurez-vous d'avoir installé :
 
@@ -87,7 +87,7 @@ psql --version
 
 ---
 
-## 🚀 Installation
+##  Installation
 
 ### 1. Cloner le repository
 
@@ -125,7 +125,7 @@ flutter pub get
 
 ---
 
-## 🖥️ Lancement du Backend
+##  Lancement du Backend
 
 ### 1. Configuration
 
@@ -173,7 +173,7 @@ curl http://localhost:3001/health
 
 ---
 
-## 🌐 Lancement du Frontend Web
+##  Lancement du Frontend Web
 
 ### 1. Configuration
 
@@ -208,7 +208,7 @@ flutter build web --release
 
 ---
 
-## 📱 Lancement de l'Application Mobile
+##  Lancement de l'Application Mobile
 
 ### Pour Android
 
@@ -289,7 +289,7 @@ flutter build ios --release
 
 ---
 
-## 📁 Structure du projet
+##  Structure du projet
 
 ```
 Intership-plateforme/
@@ -358,7 +358,7 @@ DELETE /applications/:id       # Annuler candidature
 
 ---
 
-## 🐛 Dépannage
+##  Dépannage
 
 ### Backend ne démarre pas
 - Vérifiez que PostgreSQL est lancé
@@ -388,7 +388,7 @@ flutter upgrade
 
 ---
 
-## 📝 Comptes de test
+##  Comptes de test
 
 ### Étudiant
 - **Email:** `student@example.com`
@@ -400,7 +400,7 @@ flutter upgrade
 
 ---
 
-## 🤝 Contribution
+##  Contribution
 
 1. Fork le projet
 2. Créer une branche (`git checkout -b feature/nouvelle-fonctionnalite`)
@@ -410,28 +410,28 @@ flutter upgrade
 
 ---
 
-## 📄 Licence
+##  Licence
 
 Ce projet est sous licence MIT.
 
 ---
 
-## 👥 Auteurs
+##  Auteurs
 
 - **Développement** - Équipe de développement
 - **Co-Authored-By** - Claude Sonnet 4.5
 
 ---
 
-## 📞 Support
+##  Support
 
 Pour toute question ou problème :
-- 📧 Email : support@example.com
-- 🐛 Issues : [GitHub Issues](lien-vers-issues)
+-  Email : support@example.com
+-  Issues : [GitHub Issues](lien-vers-issues)
 
 ---
 
-## 🎉 Démarrage rapide (TL;DR)
+##  Démarrage rapide (TL;DR)
 
 ```bash
 # 1. Backend
@@ -450,7 +450,6 @@ cd flutter_app/internship_app_new
 # Modifier baseUrl dans api_constants.dart
 flutter run
 
-# Voilà ! 🚀
 ```
 
 ---
