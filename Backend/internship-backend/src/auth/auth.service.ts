@@ -25,8 +25,9 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<Partial<User>> {
     const { email, password, role } = registerDto;
 
-    if (role === UserRole.SCHOOL_ADMIN) {
-      throw new ConflictException('SCHOOL_ADMIN cannot register');
+    // STUDENT and SUPERVISOR cannot self-register, they must be created by their organization
+    if (role === UserRole.STUDENT || role === UserRole.SUPERVISOR) {
+      throw new ConflictException('This role cannot self-register');
     }
 
     const existingUser = await this.userRepository.findOne({ where: { email } });
@@ -71,5 +72,28 @@ export class AuthService {
   async login(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return { access_token: this.jwtService.sign(payload) };
+  }
+
+  // ---------------------------
+  // CHANGE PASSWORD
+  // ---------------------------
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    // Verify current password
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) throw new UnauthorizedException('Current password is incorrect');
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedPassword;
+    await this.userRepository.save(user);
   }
 }

@@ -161,6 +161,14 @@ export class StudentsController {
     return this.studentsService.findById(id);
   }
 
+  // Get detailed student information (for admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SCHOOL_ADMIN)
+  @Get(':id/details')
+  async findDetailedById(@Param('id') id: string) {
+    return this.studentsService.findDetailedById(id);
+  }
+
   // Upload d’un CV pour le profil étudiant
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.STUDENT)

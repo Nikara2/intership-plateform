@@ -5,55 +5,37 @@ import { useEffect } from 'react';
 
 interface ToastProps {
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   onClose: () => void;
+  duration?: number;
 }
 
-export default function Toast({ message, type = 'success', onClose }: ToastProps) {
+export default function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
-    }, 3000);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [duration, onClose]);
 
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return 'lucide:check-circle-2';
-      case 'error':
-        return 'lucide:alert-circle';
-      case 'info':
-        return 'lucide:info';
-      default:
-        return 'lucide:check-circle-2';
-    }
+  const icons = {
+    success: { icon: 'lucide:check-circle', bg: 'bg-green-500' },
+    error: { icon: 'lucide:alert-circle', bg: 'bg-red-500' },
+    warning: { icon: 'lucide:alert-triangle', bg: 'bg-amber-500' },
+    info: { icon: 'lucide:info', bg: 'bg-blue-500' },
   };
 
-  const getColors = () => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 text-green-800 border-green-200';
-      case 'error':
-        return 'bg-red-50 text-red-800 border-red-200';
-      case 'info':
-        return 'bg-blue-50 text-blue-800 border-blue-200';
-      default:
-        return 'bg-green-50 text-green-800 border-green-200';
-    }
-  };
+  const currentIcon = icons[type];
 
   return (
-    <div className="fixed top-24 right-8 z-[100] animate-in slide-in-from-right duration-300">
-      <div
-        className={`flex items-center gap-3 px-6 py-4 rounded-2xl border-2 shadow-2xl ${getColors()} min-w-[320px] max-w-md`}
-      >
-        <Icon icon={getIcon()} className="text-2xl flex-shrink-0" />
-        <p className="font-semibold flex-1">{message}</p>
+    <div className="fixed top-4 right-4 z-50 animate-slide-in">
+      <div className={`${currentIcon.bg} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md`}>
+        <Icon icon={currentIcon.icon} className="text-2xl flex-shrink-0" />
+        <p className="font-medium flex-1">{message}</p>
         <button
           onClick={onClose}
-          className="p-1 hover:bg-black/5 rounded-lg transition-colors"
+          className="hover:bg-white/20 rounded-lg p-1 transition-colors"
         >
           <Icon icon="lucide:x" className="text-lg" />
         </button>

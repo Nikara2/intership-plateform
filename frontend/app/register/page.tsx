@@ -7,7 +7,6 @@ import { Icon } from '@iconify/react';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'company' | 'student'>('company');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -96,7 +95,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          role: activeTab === 'company' ? 'COMPANY' : 'STUDENT',
+          role: 'COMPANY',
         }),
       });
 
@@ -155,37 +154,11 @@ export default function RegisterPage() {
           {/* Welcome Title */}
           <div className="text-center mb-6">
             <h1 className="text-3xl font-extrabold text-gray-900">
-              Créer un compte
+              Créer un compte entreprise
             </h1>
             <p className="text-gray-500 mt-2">
-              {activeTab === 'company'
-                ? "Rejoignez-nous en tant qu'entreprise"
-                : "Rejoignez-nous en tant qu'étudiant"}
+              Rejoignez notre plateforme et trouvez les meilleurs stagiaires
             </p>
-          </div>
-
-          {/* Tab Selector */}
-          <div className="flex items-center justify-center space-x-8 mb-6 border-b border-gray-100">
-            <button
-              onClick={() => setActiveTab('company')}
-              className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all ${
-                activeTab === 'company'
-                  ? 'text-[#1E40AF] border-b-2 border-[#1E40AF]'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              Entreprise
-            </button>
-            <button
-              onClick={() => setActiveTab('student')}
-              className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all ${
-                activeTab === 'student'
-                  ? 'text-[#1E40AF] border-b-2 border-[#1E40AF]'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              Étudiant
-            </button>
           </div>
 
           {/* Error Message */}
@@ -211,7 +184,7 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  placeholder={activeTab === 'company' ? 'nom@entreprise.fr' : 'prenom.nom@ecole.fr'}
+                  placeholder="contact@entreprise.fr"
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none transition-all focus:ring-4 focus:ring-blue-50 focus:border-[#1E40AF] text-gray-900 placeholder:text-gray-400"
                 />
               </div>

@@ -11,11 +11,14 @@ import { CompaniesModule } from './companies/companies.module';
 import { OffersModule } from './offers/offers.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { EvaluationsModule } from './evaluations/evaluations.module';
+import { AdminModule } from './admin/admin.module';
+import { SchoolsModule } from './schools/schools.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), 
-    TypeOrmModule.forRoot(typeOrmConfig),     
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRoot(typeOrmConfig),
     AuthModule,
     UsersModule,
     StudentsModule,
@@ -23,6 +26,9 @@ import { EvaluationsModule } from './evaluations/evaluations.module';
     OffersModule,
     ApplicationsModule,
     EvaluationsModule,
+    AdminModule,
+    SchoolsModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

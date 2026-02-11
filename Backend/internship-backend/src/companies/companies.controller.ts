@@ -66,6 +66,13 @@ export class CompaniesController {
     return this.companiesService.findById(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SCHOOL_ADMIN)
+  @Get(':id/detailed')
+  async findDetailedById(@Param('id') id: string) {
+    return this.companiesService.findDetailedById(id);
+  }
+
   // Mise à jour du profil de l’entreprise connectée
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.COMPANY)

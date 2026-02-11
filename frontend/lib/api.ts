@@ -138,3 +138,18 @@ export const evaluationsAPI = {
     api.patch(`/evaluations/${id}`, data),
   delete: (id: string) => api.delete(`/evaluations/${id}`),
 };
+
+// Admin API
+export const adminAPI = {
+  getDashboardStats: () => api.get('/admin/stats/dashboard'),
+  getApplicationsByMonth: (months: number = 6) => api.get(`/admin/stats/applications-by-month?months=${months}`),
+  getInternshipsBySector: () => api.get('/admin/stats/internships-by-sector'),
+  getRecentActivities: (limit: number = 10) => api.get(`/admin/activities/recent?limit=${limit}`),
+};
+
+// Schools API
+export const schoolAPI = {
+  getProfile: () => api.get('/schools/me'),
+  updateProfile: (data: any) => api.patch('/schools/me', data),
+  getAll: () => api.get('/schools'),
+};

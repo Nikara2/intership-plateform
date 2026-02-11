@@ -120,4 +120,52 @@ export class StudentsService {
     const result = await this.studentRepository.delete(id);
     if (result.affected === 0) throw new NotFoundException('Student not found');
   }
+
+  // Get detailed student information with applications and evaluations
+  async findDetailedById(id: string): Promise<any> {
+    const student = await this.studentRepository
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.user', 'user')
+      .where('student.id = :id', { id })
+      .getOne();
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    // Get applications with related data
+    const applications = await this.studentRepository.manager
+      .createQueryBuilder()
+      .select('application')
+      .from('applications', 'application')
+      .leftJoinAndSelect('application.offer', 'offer')
+      .leftJoinAndSelect('offer.company', 'company')
+      .where('application.student_id = :studentId', { studentId: id })
+      .orderBy('application.applied_at', 'DESC')
+      .getMany();
+
+    // Get evaluations
+    const evaluations = await this.studentRepository.manager
+      .createQueryBuilder()
+      .select('evaluation')
+      .from('evaluations', 'evaluation')
+      .leftJoinAndSelect('evaluation.application', 'application')
+      .leftJoinAndSelect('application.offer', 'offer')
+      .leftJoinAndSelect('offer.company', 'company')
+      .where('application.student_id = :studentId', { studentId: id })
+      .orderBy('evaluation.evaluated_at', 'DESC')
+      .getMany();
+
+    return {
+      ...student,
+      applications,
+      evaluations,
+      stats: {
+        totalApplications: applications.length,
+        acceptedApplications: applications.filter((a: any) => a.status === 'ACCEPTED').length,
+        completedInternships: applications.filter((a: any) => a.status === 'COMPLETED').length,
+        averageScore: evaluations.length > 0
+          ? (evaluations.reduce((sum: number, e: any) => sum + e.score, 0) / evaluations.length).toFixed(1)
+          : null,
+      },
+    };
+  }
 }

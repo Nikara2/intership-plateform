@@ -120,4 +120,58 @@ export class CompaniesService {
       activeOffersData: activeOffersWithCounts,
     };
   }
+
+  async findDetailedById(id: string): Promise<any> {
+    const company = await this.companyRepository
+      .createQueryBuilder('company')
+      .leftJoinAndSelect('company.user', 'user')
+      .where('company.id = :id', { id })
+      .getOne();
+
+    if (!company) throw new NotFoundException('Company not found');
+
+    // Get all offers for this company
+    const offers = await this.offerRepository
+      .createQueryBuilder('offer')
+      .where('offer.company_id = :companyId', { companyId: id })
+      .orderBy('offer.created_at', 'DESC')
+      .getMany();
+
+    const offerIds = offers.map(o => o.id);
+
+    // Get all applications for these offers
+    const applications = offerIds.length > 0
+      ? await this.applicationRepository
+          .createQueryBuilder('application')
+          .leftJoinAndSelect('application.student', 'student')
+          .leftJoinAndSelect('application.offer', 'offer')
+          .where('application.offer_id IN (:...offerIds)', { offerIds })
+          .orderBy('application.applied_at', 'DESC')
+          .getMany()
+      : [];
+
+    // Calculate statistics
+    const totalOffers = offers.length;
+    const activeOffers = offers.filter(o => o.status === 'OPEN').length;
+    const totalApplications = applications.length;
+    const acceptedApplications = applications.filter(a => a.status === 'ACCEPTED').length;
+    const completedInternships = applications.filter(a => a.status === 'COMPLETED').length;
+    const acceptanceRate = totalApplications > 0
+      ? Math.round((acceptedApplications / totalApplications) * 100)
+      : 0;
+
+    return {
+      ...company,
+      offers,
+      applications,
+      stats: {
+        totalOffers,
+        activeOffers,
+        totalApplications,
+        acceptedApplications,
+        completedInternships,
+        acceptanceRate,
+      },
+    };
+  }
 }

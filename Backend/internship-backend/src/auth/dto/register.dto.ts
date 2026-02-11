@@ -10,6 +10,6 @@ export class RegisterDto {
   password: string;
 
   @IsEnum(UserRole)
-  @IsNotIn([UserRole.SCHOOL_ADMIN])
+  @IsNotIn([UserRole.SUPERVISOR, UserRole.STUDENT]) // Supervisors and students cannot self-register
   role: UserRole;
 }
